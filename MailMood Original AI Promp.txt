@@ -1,0 +1,235 @@
+MailMood - Product Context Brief
+Overview
+MailMood is a browser extension (initially Chrome/Firefox) that provides emotional intelligence for email communication. It analyzes both incoming and outgoing emails to show emotional tone/mood, helping users reduce email anxiety and prevent communication mistakes.
+Core Problem Being Solved
+
+Email anxiety - People dread opening emails because they don't know if the content will be angry, urgent, or stressful
+Tone blindness - People send emails without realizing they sound hostile, pushy, defensive, or overly apologetic
+Relationship damage - Poorly-worded emails damage professional and personal relationships
+Information overload - Can't effectively triage 50+ unread emails by subject line alone
+
+Two-Sided Value Proposition
+Incoming Emails (Receive Mode)
+Feature: Color-coded mood indicators appear next to emails in inbox view
+What user sees:
+📧 Subject: "Quick question about the report"
+   🟢 Calm, professional
+
+📧 Subject: "We need to talk"  
+   🔴 Urgent, tense
+
+📧 Subject: "Thank you so much!"
+   🟡 Grateful, warm
+Value: Users can see emotional temperature before opening, enabling better triage and mental preparation
+Outgoing Emails (Compose Mode)
+Feature: Real-time emotional tone analysis while composing emails
+What user sees:
+[User's draft email displayed]
+
+╔═══════════════════════════════════╗
+║ 📊 MailMood Tone Check            ║
+║                                   ║
+║ Current tone: 🔴 Hostile          ║
+║                                   ║
+║ Detected emotions:                ║
+║ • Frustration (high)              ║
+║ • Defensiveness (medium)          ║
+║ • Impatience (high)               ║
+║                                   ║
+║ 💡 This may damage the            ║
+║    relationship. Consider         ║
+║    softening the tone.            ║
+║                                   ║
+║ [Rewrite with AI] [Send anyway]   ║
+╚═══════════════════════════════════╝
+Value: Prevents sending emails user will regret, improves professional communication quality
+Technical Architecture
+Core Technology: MightyTags™
+Proprietary emotional parsing engine that:
+
+Distinguishes emotional language from symptom language
+Identifies specific emotional tags (frustration, gratitude, urgency, defensiveness, etc.)
+Assigns intensity levels (low/medium/high)
+Categorizes overall tone (Professional, Hostile, Warm, Defensive, etc.)
+
+How It Works:
+For Incoming Emails:
+
+Extension scans email preview text in inbox view
+Sends preview text to MightyTags API (over internet)
+API analyzes and returns emotional tags
+Extension displays color-coded indicator next to subject line
+
+For Compose Mode:
+
+User types email in Gmail compose window
+Extension sends draft text to MightyTags API as user types (real-time)
+API analyzes emotional tone in memory (doesn't store content)
+Returns emotional breakdown
+Extension displays tone panel with suggestions
+Updates in real-time as user edits
+
+Privacy Architecture:
+
+Email content analyzed in real-time (in RAM/memory)
+No permanent storage of email content
+Process and forget model (like ephemeral analysis)
+User trust built on "we never store your emails"
+Optional local-only analysis mode for sensitive emails
+
+Color-Coding System
+🟢 Green = Calm, neutral, professional, matter-of-fact
+🟡 Yellow = Warm, positive, grateful, encouraging
+🔴 Red = Urgent, tense, frustrated, angry, demanding
+🟣 Purple = Overly apologetic, lacking confidence, anxious
+⚪ Gray = Automated, transactional, unclear emotional tone
+🔵 Blue (optional) = Sad, disappointed, concerned
+Product Tiers
+MailMood Free
+
+Incoming email mood indicators (50 emails/day)
+Basic compose tone check (10 emails/day)
+3 emotion categories (Calm/Warm/Tense)
+
+MailMood Pro ($9/month individual)
+
+Unlimited incoming analysis
+Unlimited compose tone checking
+8 detailed emotion categories
+Real-time analysis as you type
+Tone history tracking
+AI rewrite suggestions
+Custom sensitivity settings
+
+MailMood Teams ($49-499/month)
+
+All Pro features for team members
+Team tone standards (define acceptable ranges)
+Emotional guardrails (block hostile emails from being sent)
+Customer sentiment dashboard
+Shared response template library
+Team coaching insights
+Export reports
+
+MailMood API (Custom pricing)
+
+Integrate MailMood into other email clients
+White-label emotional analysis
+Enterprise implementation
+
+Key Features
+Real-Time Compose Analysis
+Like Grammarly for emotional tone - updates as you type
+AI Rewrite Suggestions
+Takes hostile/defensive email and suggests professional alternative
+Emotional Guardrails (Premium)
+User can set rules: "Block me from sending emails that read as Angry or Hostile"
+Prevents regrettable sends
+Tone History Tracking
+Shows patterns: "Your follow-up emails tend to read as 'pushy' - here's how to fix that"
+Team Dashboards (B2B)
+Manager sees: "Your customer service team sent 340 emails last week - 23% read as defensive. Training opportunity."
+Target Markets
+Primary (Consumer)
+
+People with email anxiety
+Remote workers (text-only communication)
+Non-native English speakers
+People with ADHD/autism (struggle with tone perception)
+Anyone who's sent an email they regret (everyone)
+
+Secondary (B2B)
+
+Customer service teams (responding to angry customers)
+Sales teams (following up without being pushy)
+Executive assistants (managing tone for executives)
+HR departments (sensitive communications)
+Remote-first companies (heavy email culture)
+
+Competitive Landscape
+Grammarly: Grammar/spelling/clarity - doesn't check emotional tone
+Crystal: Shows recipient's communication preferences - doesn't analyze YOUR tone
+Boomerang Respondable: Predicts response likelihood - limited emotional analysis
+MailMood: Only tool that shows emotional temperature of BOTH incoming and outgoing emails
+Business Model
+Revenue Streams:
+
+Freemium subscriptions ($9/month Pro tier)
+Team/enterprise licenses ($49-499/month)
+API licensing for other email platforms
+Potential acquisition by email productivity company
+
+Revenue Projections:
+
+Year 1: 10,000 users → $50k ARR
+Year 2: 50,000 users → $500k ARR
+Year 3: 200,000 users → $2M ARR
+
+Exit Potential:
+$10M-50M acquisition by companies like Superhuman, Front, Grammarly, or customer service platforms
+Go-to-Market Strategy
+Phase 1: Launch
+
+Build Chrome extension
+Product Hunt launch
+Target: Productivity subreddits, HackerNews
+Headline: "See the emotional temperature of every email before you open it"
+
+Phase 2: Growth
+
+Add Firefox support
+Influencer partnerships (productivity YouTubers)
+Content marketing: "10 emails you should have MailMooded before sending"
+Integration with productivity communities
+
+Phase 3: B2B Pivot
+
+Team features
+Target customer service software review sites
+Partner with remote work platforms
+Headline: "Prevent customer service tone mistakes at scale"
+
+Why This Could Succeed
+
+Universal pain point - Everyone has email anxiety or has sent regrettable emails
+Immediate value - See results in first 30 seconds of use
+Low friction - Browser extension, works with existing Gmail
+Clear differentiation - First to do emotional tone for both incoming and outgoing
+Multiple revenue paths - Consumer freemium + B2B enterprise + API licensing
+Defensible moat - Requires proprietary emotional AI (MightyTags™)
+Viral potential - "My inbox has mood rings now" is shareable
+Acquisition target - Email productivity companies will want this capability
+
+Founder's Design Philosophy
+MailMood is built on a "dignity-preserving, vulnerability-conscious" design philosophy that runs through the founder's entire portfolio:
+
+SimpleSuite - Tech for seniors without patronizing them
+WiFiSimple - Network diagnostics for non-technical users
+ThoughtVault/EOS - Privacy-first emotional processing
+MailMood - Emotional intelligence without surveillance
+
+Core principle: "Build tools for people in vulnerable states (email anxiety, technological overwhelm, emotional processing) that reduce cognitive load while preserving dignity and privacy."
+Current Status
+Development stage: Concept validation
+Timeline: 8-12 weeks to MVP
+Next steps:
+
+Domain acquisition (MailMood.app)
+User validation interviews (target: 20 people)
+Chrome extension framework development
+MightyTags API integration
+MVP launch (incoming + basic compose mode)
+
+What I Need Help With
+[Customize this section based on what you're asking the AI. Examples:]
+
+Technical architecture decisions
+UI/UX design for compose mode panel
+Pricing strategy refinement
+Marketing copy/positioning
+Competitive analysis
+Feature prioritization
+Go-to-market strategy
+
+
+Context for AI: This product combines emotional AI (MightyTags parsing engine) with practical email productivity. The two-sided approach (incoming + outgoing) is what makes it defensible and valuable. Think "Grammarly for emotional tone" meets "email anxiety reducer."
