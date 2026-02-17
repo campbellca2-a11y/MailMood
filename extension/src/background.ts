@@ -1,69 +1,51 @@
-import { API_BASE_URL } from "./constants";
-import { localAnalyze, localRewrite } from "./lib/localFallback";
-import type {
-  AnalyzeRequest,
-  AnalyzeResponse,
-  BackgroundMessage,
-  RewriteRequest,
-  RewriteResponse
-} from "./types";
+const DEFAULTS = {
+  apiBase: "http://localhost:8787"
+};
 
-function clamp(value: number): number {
-  return Math.max(0, Math.min(1, value));
+const REQUEST_TIMEOUT_MS = 8000;
+
+async function getSettings() {
+  const data = await chrome.storage.sync.get(DEFAULTS);
+  return { ...DEFAULTS, ...data };
 }
 
-async function postJson<T>(path: string, payload: unknown): Promise<T> {
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3500);
-
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    return (await response.json()) as T;
+    return await fetch(url, { ...options, signal: controller.signal });
   } finally {
-    clearTimeout(timeout);
+    clearTimeout(timeoutId);
   }
 }
 
-chrome.runtime.onMessage.addListener((message: BackgroundMessage, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
   (async () => {
-    if (message.type === "MM_ANALYZE") {
-      const payload: AnalyzeRequest = message.payload;
-      try {
-        const result = await postJson<AnalyzeResponse>("/analyze", payload);
-        result.confidence = clamp(result.confidence);
-        result.emotions = result.emotions.map((emotion) => ({
-          ...emotion,
-          intensity: clamp(emotion.intensity)
-        }));
-        sendResponse({ ok: true, data: result });
-      } catch {
-        sendResponse({ ok: true, data: localAnalyze(payload.text) });
-      }
-      return;
-    }
+    try {
+      const { apiBase } = await getSettings();
 
-    if (message.type === "MM_REWRITE") {
-      const payload: RewriteRequest = message.payload;
-      try {
-        const result = await postJson<RewriteResponse>("/rewrite", payload);
-        sendResponse({ ok: true, data: result });
-      } catch {
-        sendResponse({ ok: true, data: localRewrite(payload.text) });
+      if (message.type === "ANALYZE_TONE") {
+        const res = await fetchWithTimeout(`${apiBase}/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: message.text })
+        });
+        const data = await res.json();
+        sendResponse({ ok: true, data });
       }
-      return;
-    }
 
-    sendResponse({ ok: false, error: "Unknown message type" });
+      if (message.type === "REWRITE") {
+        const res = await fetchWithTimeout(`${apiBase}/rewrite`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: message.text })
+        });
+        const data = await res.json();
+        sendResponse({ ok: true, data });
+      }
+    } catch (err) {
+      sendResponse({ ok: false, error: String(err) });
+    }
   })();
 
   return true;

@@ -2,6 +2,15 @@ import { SELECTORS, TONE_META } from "../constants";
 import type { AnalyzeResponse, BackgroundAnalyzeMessage } from "../types";
 
 const toneCache = new Map<string, AnalyzeResponse>();
+const MAX_CACHE_SIZE = 200;
+
+function setCached(key: string, value: AnalyzeResponse): void {
+  if (toneCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = toneCache.keys().next().value;
+    if (firstKey !== undefined) toneCache.delete(firstKey);
+  }
+  toneCache.set(key, value);
+}
 
 function digest(text: string): string {
   let hash = 0;
@@ -96,7 +105,7 @@ async function analyzeRow(row: Element): Promise<void> {
   pending.add(hash);
   try {
     const analysis = await sendAnalyze(text);
-    toneCache.set(hash, analysis);
+    setCached(hash, analysis);
     // Re-query the subject element in case Gmail re-rendered the row
     const freshSubject = row.querySelector(SELECTORS.subject);
     if (freshSubject) {
