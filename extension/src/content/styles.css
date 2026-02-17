@@ -1,0 +1,99 @@
+.mm-inbox-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.mm-compose-panel {
+  position: fixed;
+  width: 280px;
+  z-index: 10000;
+  border: 1px solid #d6dde7;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(10, 42, 78, 0.16);
+  background: linear-gradient(180deg, #f9fcff, #f0f6ff);
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.mm-compose-panel.mm-minimized {
+  width: auto;
+  min-width: 120px;
+  border-radius: 8px;
+}
+
+.mm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: grab;
+  background: linear-gradient(180deg, #e8f0fe, #dce8fa);
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid #c8d5e4;
+  user-select: none;
+}
+
+.mm-header:active {
+  cursor: grabbing;
+}
+
+.mm-minimized .mm-header {
+  border-radius: 8px;
+  border-bottom: none;
+}
+
+.mm-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2c3a;
+}
+
+.mm-toggle {
+  background: none;
+  border: 1px solid #9db3cc;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  color: #28405a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mm-toggle:hover {
+  background: #d0ddf0;
+}
+
+.mm-panel-body {
+  padding: 10px 12px 12px;
+}
+
+.mm-status {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.mm-emotions {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #2f3f54;
+  min-height: 36px;
+}
+
+
+.mm-caption {
+  margin: 8px 0 0;
+  font-size: 10px;
+  color: #50647b;
+}
