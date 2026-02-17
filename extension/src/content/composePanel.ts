@@ -1,7 +1,10 @@
 import { SELECTORS, TONE_META } from "../constants";
 import type {
   AnalyzeResponse,
-  BackgroundAnalyzeMessage
+  BackgroundAnalyzeMessage,
+  BackgroundRewriteMessage,
+  RewriteResponse,
+  ToneLabel
 } from "../types";
 
 interface ComposeContext {
@@ -10,7 +13,14 @@ interface ComposeContext {
   panelBody: HTMLDivElement;
   status: HTMLDivElement;
   emotionList: HTMLUListElement;
+  rewriteButton: HTMLButtonElement;
+  sendAnywayButton: HTMLButtonElement;
+  rewritePreview: HTMLDivElement;
+  rewriteText: HTMLPreElement;
+  applyRewriteButton: HTMLButtonElement;
+  dismissRewriteButton: HTMLButtonElement;
   lastDraft: string;
+  lastAnalysis: AnalyzeResponse | null;
   timerId: number | null;
 }
 
@@ -37,6 +47,26 @@ function sendAnalyze(text: string): Promise<AnalyzeResponse> {
   });
 }
 
+function sendRewrite(text: string, targetTone: ToneLabel): Promise<RewriteResponse> {
+  const message: BackgroundRewriteMessage = {
+    type: "MM_REWRITE",
+    payload: { text, targetTone }
+  };
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+        return;
+      }
+      if (!response?.ok) {
+        reject(new Error(response?.error ?? "Unknown background error"));
+        return;
+      }
+      resolve(response.data as RewriteResponse);
+    });
+  });
+}
+
 function getDraftText(body: HTMLElement): string {
   return body.innerText.trim();
 }
@@ -53,6 +83,21 @@ function renderAnalysis(context: ComposeContext, analysis: AnalyzeResponse): voi
     item.textContent = `${emotion.name}: ${Math.round(emotion.intensity * 100)}%`;
     context.emotionList.appendChild(item);
   });
+}
+
+function setRewriteLoading(context: ComposeContext, loading: boolean): void {
+  context.rewriteButton.disabled = loading;
+  context.rewriteButton.textContent = loading ? "Rewriting..." : "Rewrite";
+}
+
+function hideRewritePreview(context: ComposeContext): void {
+  context.rewritePreview.hidden = true;
+  context.rewriteText.textContent = "";
+}
+
+function showRewritePreview(context: ComposeContext, rewrite: RewriteResponse): void {
+  context.rewriteText.textContent = rewrite.rewritten;
+  context.rewritePreview.hidden = false;
 }
 
 function makeDraggable(panel: HTMLDivElement, handle: HTMLDivElement): void {
@@ -94,6 +139,18 @@ function createPanel(): ComposeContext {
     <div class="mm-panel-body">
       <div class="mm-status">Analyzing draft...</div>
       <ul class="mm-emotions"></ul>
+      <div class="mm-actions">
+        <button class="mm-btn mm-btn-primary mm-rewrite-btn" type="button">Rewrite</button>
+        <button class="mm-btn mm-btn-muted mm-send-anyway-btn" type="button">Send Anyway</button>
+      </div>
+      <div class="mm-rewrite-preview" hidden>
+        <div class="mm-rewrite-label">Suggested rewrite</div>
+        <pre class="mm-rewrite-text"></pre>
+        <div class="mm-actions">
+          <button class="mm-btn mm-btn-primary mm-apply-rewrite-btn" type="button">Apply Rewrite</button>
+          <button class="mm-btn mm-btn-muted mm-dismiss-rewrite-btn" type="button">Dismiss</button>
+        </div>
+      </div>
       <p class="mm-caption">No email text is stored.</p>
     </div>
   `;
@@ -103,6 +160,12 @@ function createPanel(): ComposeContext {
   const toggleBtn = panel.querySelector<HTMLButtonElement>(".mm-toggle")!;
   const status = panel.querySelector<HTMLDivElement>(".mm-status")!;
   const emotionList = panel.querySelector<HTMLUListElement>(".mm-emotions")!;
+  const rewriteButton = panel.querySelector<HTMLButtonElement>(".mm-rewrite-btn")!;
+  const sendAnywayButton = panel.querySelector<HTMLButtonElement>(".mm-send-anyway-btn")!;
+  const rewritePreview = panel.querySelector<HTMLDivElement>(".mm-rewrite-preview")!;
+  const rewriteText = panel.querySelector<HTMLPreElement>(".mm-rewrite-text")!;
+  const applyRewriteButton = panel.querySelector<HTMLButtonElement>(".mm-apply-rewrite-btn")!;
+  const dismissRewriteButton = panel.querySelector<HTMLButtonElement>(".mm-dismiss-rewrite-btn")!;
 
   makeDraggable(panel, header);
 
@@ -120,7 +183,14 @@ function createPanel(): ComposeContext {
     panelBody,
     status,
     emotionList,
+    rewriteButton,
+    sendAnywayButton,
+    rewritePreview,
+    rewriteText,
+    applyRewriteButton,
+    dismissRewriteButton,
     lastDraft: "",
+    lastAnalysis: null,
     timerId: null
   };
 }
@@ -132,12 +202,37 @@ async function updateAnalysis(context: ComposeContext): Promise<void> {
   }
 
   context.lastDraft = text;
+  hideRewritePreview(context);
   context.status.textContent = "Analyzing...";
   try {
     const analysis = await sendAnalyze(text);
+    context.lastAnalysis = analysis;
     renderAnalysis(context, analysis);
   } catch {
+    context.lastAnalysis = null;
     context.status.textContent = "Tone unavailable.";
+  }
+}
+
+async function runRewrite(context: ComposeContext): Promise<void> {
+  const text = getDraftText(context.body);
+  if (!text) {
+    return;
+  }
+
+  const detectedTone = context.lastAnalysis?.toneLabel ?? "calm_professional";
+  const targetTone: ToneLabel = detectedTone === "urgent_tense" || detectedTone === "apologetic_anxious"
+    ? "calm_professional"
+    : "warm_positive";
+
+  setRewriteLoading(context, true);
+  try {
+    const rewrite = await sendRewrite(text, targetTone);
+    showRewritePreview(context, rewrite);
+  } catch {
+    context.status.textContent = "Rewrite unavailable.";
+  } finally {
+    setRewriteLoading(context, false);
   }
 }
 
@@ -175,6 +270,30 @@ function attachToComposeBody(body: HTMLElement): void {
       void updateAnalysis(context);
     }, 500);
   };
+
+  context.rewriteButton.addEventListener("click", () => {
+    void runRewrite(context);
+  });
+
+  context.sendAnywayButton.addEventListener("click", () => {
+    hideRewritePreview(context);
+    context.status.textContent = "Send decision remains yours.";
+  });
+
+  context.dismissRewriteButton.addEventListener("click", () => {
+    hideRewritePreview(context);
+  });
+
+  context.applyRewriteButton.addEventListener("click", () => {
+    const rewritten = context.rewriteText.textContent?.trim() ?? "";
+    if (!rewritten) {
+      return;
+    }
+    body.innerText = rewritten;
+    body.dispatchEvent(new Event("input", { bubbles: true }));
+    hideRewritePreview(context);
+    context.status.textContent = "Rewrite applied.";
+  });
 
   body.addEventListener("input", schedule, { passive: true });
   void updateAnalysis(context);
