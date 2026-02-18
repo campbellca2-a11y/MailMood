@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
+    "build": "node scripts/bundle.mjs",
+    "watch": "node scripts/bundle.mjs --watch",
     "test": "vitest run",
     "test:watch": "vitest"
   },

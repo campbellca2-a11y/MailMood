@@ -68,6 +68,37 @@ function upsertMoodBadge(subjectEl: Element, analysis: AnalyzeResponse): void {
 // Track in-flight requests to avoid duplicates
 const pending = new Set<string>();
 
+// Rate limiting — cap concurrent analyses so large inboxes don't flood the
+// background worker with dozens of simultaneous messages on first load.
+const MAX_CONCURRENT = 5;
+let activeCount = 0;
+const analysisQueue: Array<() => void> = [];
+
+function drainQueue(): void {
+  while (activeCount < MAX_CONCURRENT && analysisQueue.length > 0) {
+    const next = analysisQueue.shift();
+    if (next) next();
+  }
+}
+
+function withConcurrencyLimit(fn: () => Promise<void>): void {
+  if (activeCount < MAX_CONCURRENT) {
+    activeCount++;
+    fn().finally(() => {
+      activeCount--;
+      drainQueue();
+    });
+  } else {
+    analysisQueue.push(() => {
+      activeCount++;
+      fn().finally(() => {
+        activeCount--;
+        drainQueue();
+      });
+    });
+  }
+}
+
 async function analyzeRow(row: Element): Promise<void> {
   const subjectEl = row.querySelector(SELECTORS.subject);
   const previewEl = row.querySelector(SELECTORS.preview);
@@ -125,7 +156,7 @@ function scanInbox(): void {
   observerPaused = true;
   const rows = document.querySelectorAll(SELECTORS.inboxRow);
   rows.forEach((row) => {
-    void analyzeRow(row);
+    withConcurrencyLimit(() => analyzeRow(row));
   });
   // Resume observer on next microtask (after our DOM writes settle)
   queueMicrotask(() => { observerPaused = false; });

@@ -1,31 +1,24 @@
 {
   "manifest_version": 3,
   "name": "MailMood",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Emotional intelligence for email communication",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage"],
   "host_permissions": [
-    "https://mail.google.com/*",
-    "https://outlook.office.com/*",
-    "https://outlook.live.com/*",
-    "http://localhost:8787/*"
+    "https://mail.google.com/*"
   ],
-  "background": { "service_worker": "dist/background.js" },
-  "options_page": "dist/options/options.html",
+  "background": { "service_worker": "background.js" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none';"
+  },
   "content_scripts": [
     {
       "matches": [
-        "https://mail.google.com/*",
-        "https://outlook.office.com/*",
-        "https://outlook.live.com/*"
+        "https://mail.google.com/*"
       ],
-      "js": ["dist/content/index.js"],
+      "js": ["content/index.js"],
+      "css": ["content/styles.css"],
       "run_at": "document_idle"
     }
-  ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "mailmood@example.com"
-    }
-  }
+  ]
 }

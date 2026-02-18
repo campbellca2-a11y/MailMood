@@ -29,7 +29,7 @@ const contentEntry = {
   outdir: resolve(dist, "content"),
 };
 
-// Copy static assets (manifest + CSS)
+// Copy static assets (manifest, CSS)
 function copyStatic() {
   mkdirSync(resolve(dist, "content"), { recursive: true });
   cpSync(resolve(root, "manifest.json"), resolve(dist, "manifest.json"));
