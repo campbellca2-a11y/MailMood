@@ -1,3 +1,7 @@
+// Copyright (c) 2026 Bill Campbell. All rights reserved.
+// MailMood — https://github.com/campbellca2-a11y/MailMood
+// Licensed under the Business Source License 1.1. See LICENSE for details.
+
 import { SELECTORS, TONE_META } from "../constants";
 import type { AnalyzeResponse, BackgroundAnalyzeMessage } from "../types";
 
