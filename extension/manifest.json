@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MailMood",
   "version": "1.0.0",
-  "description": "Emotional intelligence for email communication",
+  "description": "See the emotional tone of every Gmail email instantly. Free mood badges. Pro compose panel coming soon.",
   "permissions": ["storage"],
  "icons": {
   "16": "assets/icon16.png",
