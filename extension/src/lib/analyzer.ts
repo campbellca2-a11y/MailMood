@@ -37,6 +37,17 @@ const LEX = {
     "act now", "action required", "response required",
     ["final notice", 1.4], ["last chance", 1.3], "comply",
     ["do this now", 1.4], ["handle this", 1.2],
+    // Expiry / scarcity language
+    "expire", "expiring", "expires", "expiration",
+    ["expire soon", 1.4], ["expiring soon", 1.4], ["expires soon", 1.4],
+    ["don't miss", 1.3], ["don't miss out", 1.4],
+    ["limited time", 1.4], ["limited offer", 1.3],
+    ["ends today", 1.5], ["ends soon", 1.4], ["ending soon", 1.4],
+    ["offer ends", 1.4], ["today only", 1.5], ["one day only", 1.5],
+    ["while supplies last", 1.4], ["selling fast", 1.3],
+    ["last day", 1.4], ["final day", 1.4], ["final hours", 1.5],
+    ["claim now", 1.4], ["redeem now", 1.4], ["use it or lose it", 1.5],
+    ["offer expires", 1.5], ["your offer", 1.2],
   ]),
 
   apologetic: lex([
