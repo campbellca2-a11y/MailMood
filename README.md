@@ -74,6 +74,7 @@ cd extension && npm test  # local fallback tests
 - **Rewrite suggestions** — one-click tone adjustment (e.g. urgent → calm/professional)
 - **Six tones** — Calm/Professional, Warm/Positive, Urgent/Tense, Apologetic/Anxious, Neutral/Automated, Sad/Concerned
 - **Privacy model** — process-and-forget; no email text is stored or transmitted externally
+- **Privacy policy** — https://campbellca2-a11y.github.io/MailMood/privacy.html
 
 ## Tone Colors
 
