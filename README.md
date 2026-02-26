@@ -2,7 +2,17 @@
 
 Emotional intelligence for Gmail. Injects mood badges into the inbox and a live tone panel into the compose window — all processed locally with zero data retention.
 
-## Architecture
+[![License: Business Source License 1.1](https://img.shields.io/badge/License-BSL%201.1-lightgrey.svg)](LICENSE)
+
+---
+
+**⚠️ License Notice:** ...
+
+**Security Policy:** ...
+
+© 2026 Bill Campbell...
+
+---## Architecture
 
 ```
 extension/          Chrome MV3 extension (TypeScript → esbuild)

@@ -1,0 +1,4 @@
+# CODEOWNERS
+# This file identifies the primary maintainer and copyright holder of MailMood
+
+* @campbillca2-a11y
