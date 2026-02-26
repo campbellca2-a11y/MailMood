@@ -100,3 +100,109 @@ Thin elements feel too delicate.
 Dots can feel lost.
 
 You rebalance visually — not mathematically.
+
+Great question.
+
+Right now it’s just thinking on paper. It becomes valuable only if it turns into:
+
+1. A repeatable build asset
+2. A brand guardrail
+3. A handoff reference
+
+If it just lives in chat, it’s noise.
+
+Here’s what you actually do with it.
+
+---
+
+## 1️⃣ Turn it into a single source of truth file
+
+Create:
+
+```
+MailMood/brand/icon-spec.md
+```
+
+Put in:
+
+* 16px master spec
+* Color hex codes
+* Stroke logic
+* Dot proportions
+* Scaling rules
+* Required Chrome sizes
+
+Nothing more.
+
+This becomes:
+
+> “How MailMood icon is built.”
+
+If you ever redesign or hire someone, they don’t guess.
+
+---
+
+## 2️⃣ Make a 16px Figma (or Illustrator) master
+
+Build it once on a 16×16 grid.
+
+Snap everything to pixel grid.
+
+Then:
+
+* Duplicate artboards at 32, 48, 128
+* Apply scaling adjustments manually
+* Export PNGs
+
+The document prevents drift.
+
+---
+
+## 3️⃣ Store-ready packaging
+
+Put the final PNGs in:
+
+```
+MailMood/extension/assets/
+```
+
+Then update `manifest.json`:
+
+```json
+"icons": {
+  "16": "assets/icon16.png",
+  "32": "assets/icon32.png",
+  "48": "assets/icon48.png",
+  "128": "assets/icon128.png"
+}
+```
+
+Now the documentation has operational impact.
+
+---
+
+## 4️⃣ Don’t overthink it
+
+This is not a branding manifesto.
+
+It’s:
+
+* A build reference.
+* A scaling safeguard.
+* A future-you time saver.
+
+If it’s not serving one of those, delete it.
+
+---
+
+Right now you’re in founder mode — documenting decisions so you don’t regress later.
+
+That’s good.
+
+But documentation that doesn’t get wired into repo structure is just journaling.
+
+So answer me this:
+
+Are you building the icon in Figma, Illustrator, or something else?
+
+
