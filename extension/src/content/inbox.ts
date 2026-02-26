@@ -155,6 +155,8 @@ async function analyzeRow(row: Element): Promise<void> {
 
 let observerPaused = false;
 
+ showTutorialToast();
+ 
 function scanInbox(): void {
   // Pause observer while we modify DOM to avoid infinite loop
   observerPaused = true;
@@ -165,7 +167,37 @@ function scanInbox(): void {
   // Resume observer on next microtask (after our DOM writes settle)
   queueMicrotask(() => { observerPaused = false; });
 }
-
+// Tutorial toast - shows once on first Gmail open after install
+function showTutorialToast(): void {
+  chrome.storage.local.get(["mm_show_tutorial"], (result) => {
+    if (result.mm_show_tutorial) {
+      const toast = document.createElement("div");
+      toast.id = "mailmood-tutorial-toast";
+      toast.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #2563eb;
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        max-width: 300px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      `;
+      toast.textContent = "✨ MailMood is active! Look for mood badges next to emails";
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+        chrome.storage.local.set({ mm_show_tutorial: false });
+      }, 6000);
+    }
+  });
+}
 export function initInboxWatcher(): void {
   scanInbox();
 

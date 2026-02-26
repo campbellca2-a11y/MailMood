@@ -23,3 +23,10 @@ chrome.runtime.onMessage.addListener((message: any, _sender: chrome.runtime.Mess
 
   return true;
 });
+
+// Track installation to show tutorial toast on first Gmail open
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.storage.local.set({ mm_show_tutorial: true });
+  }
+});
