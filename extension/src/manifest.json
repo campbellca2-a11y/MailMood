@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "MailMood | Inbox Emotion Analyzer: See How Emails Feel",
-  "version": "1.0.1",
-  "description": "Understand email tone at a glance. Color-coded emotion pills show how each message reads—instantly, privately, in your Gmail inbox.",
+  "name": "MailMood | Email Tone Identifier & Rewriter",
+  "version": "1.0.2",
+  "description": "See email tone at a glance. MailMood adds mood badges to your Gmail inbox—understand message intent before you open it.",
   "short_name": "MailMood - Email Tone",
   "permissions": [
     "storage"
