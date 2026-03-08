@@ -1,5 +1,5 @@
 import { build, context } from "esbuild";
-import { cpSync, mkdirSync } from "node:fs";
+import { cpSync, mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(process.cwd());
@@ -12,20 +12,21 @@ const shared = {
   target: "es2022",
   sourcemap: false,
   minify: false,
-  outdir: dist,
 };
 
-// Background service worker — single self-contained bundle
+// Background service worker — maps to dist/background.js
 const bgEntry = {
   ...shared,
   entryPoints: [resolve(root, "src/background.ts")],
   outdir: dist,
 };
 
-// Content script — single self-contained bundle
+// Content script — maps to dist/content/index.js
 const contentEntry = {
   ...shared,
-  entryPoints: [resolve(root, "src/content/index.ts")],
+  entryPoints: {
+    'index': resolve(root, "src/content/index.ts")
+  },
   outdir: resolve(dist, "content"),
 };
 
@@ -45,12 +46,14 @@ function copyStatic() {
 if (isWatch) {
   const [bgCtx, contentCtx] = await Promise.all([
     context(bgEntry),
-    context(contentEntry),
+    context(contentCtx),
   ]);
   copyStatic();
   await Promise.all([bgCtx.watch(), contentCtx.watch()]);
   console.log("[mailmood] Watching for changes...");
 } else {
+  // Clean dist before build
+  rmSync(dist, { recursive: true, force: true });
   await Promise.all([build(bgEntry), build(contentEntry)]);
   copyStatic();
   console.log("[mailmood] Build complete.");

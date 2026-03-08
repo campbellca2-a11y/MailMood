@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MailMood Options</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; }
+    .container { max-width: 400px; }
+    input { width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    button { background: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #1557b0; }
+    #status { margin-top: 15px; font-weight: bold; color: #15803d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>MailMood Settings</h2>
+    <label for="apiKey">Google Gemini API Key:</label>
+    <input type="password" id="apiKey" placeholder="AIzaSy...">
+    <button id="save">Save Key</button>
+    <p id="status"></p>
+  </div>
+
+  <script src="dist/options.js"></script>
+</body>
+</html>

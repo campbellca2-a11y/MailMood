@@ -1,32 +1,84 @@
-// Copyright (c) 2026 Bill Campbell. All rights reserved.
-// MailMood — https://github.com/campbellca2-a11y/MailMood
-// Licensed under the Business Source License 1.1. See LICENSE for details.
-import { analyzeTone } from "./lib/analyzer.js";
-import { rewriteDraft } from "./lib/rewrite.js";
+/**
+ * MailMood Background Service Worker (Local-First)
+ * - No network calls
+ * - No tokens
+ * - Runs tone analysis + polish locally
+ *
+ * Back-compat:
+ * - still accepts { type: "PROCESS_TEXT", task: "mood"|"rewrite", text }
+ *
+ * New message types:
+ * - { type: "MM_ANALYZE", text }
+ * - { type: "MM_POLISH", text }
+ */
 
-chrome.runtime.onMessage.addListener((message: any, _sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
-  (async () => {
-    try {
-      if (message.type === "MM_ANALYZE") {
-        const data = analyzeTone(message.payload.text);
-        sendResponse({ ok: true, data });
-      } else if (message.type === "MM_REWRITE") {
-        const data = rewriteDraft(message.payload.text, message.payload.targetTone);
-        sendResponse({ ok: true, data });
-      } else {
-        sendResponse({ ok: false, error: "Unknown message type" });
+import { analyzeTone } from "./lib/analyzer";
+import { polishText } from "./lib/polisher";
+
+const DEBUG = false;
+
+function log(...args: any[]) {
+  if (DEBUG) console.log("[MailMood SW]", ...args);
+}
+
+type LegacyTask = "mood" | "rewrite";
+
+type LegacyMsg = {
+  type: "PROCESS_TEXT";
+  task: LegacyTask;
+  text: string;
+};
+
+type AnalyzeMsg = {
+  type: "MM_ANALYZE";
+  text: string;
+};
+
+type PolishMsg = {
+  type: "MM_POLISH";
+  text: string;
+};
+
+type AnyMsg = LegacyMsg | AnalyzeMsg | PolishMsg;
+
+chrome.runtime.onMessage.addListener((msg: AnyMsg, _sender, sendResponse) => {
+  if (!msg || typeof msg !== "object" || !("type" in msg)) return;
+
+  try {
+    // Legacy path
+    if (msg.type === "PROCESS_TEXT") {
+      const text = (msg.text || "").toString();
+
+      if (msg.task === "rewrite") {
+        const out = polishText(text);
+        return sendResponse({ success: true, data: out });
       }
-    } catch (err) {
-      sendResponse({ ok: false, error: String(err) });
+
+      // mood
+      const out = analyzeTone(text);
+      return sendResponse({ success: true, data: out });
     }
-  })();
 
-  return true;
-});
+    // New paths
+    if (msg.type === "MM_ANALYZE") {
+      const text = (msg.text || "").toString();
+      const out = analyzeTone(text);
+      return sendResponse({ ok: true, data: out });
+    }
 
-// Track installation to show tutorial toast on first Gmail open
-chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === "install") {
-    chrome.storage.local.set({ mm_show_tutorial: true });
+    if (msg.type === "MM_POLISH") {
+      const text = (msg.text || "").toString();
+      const out = polishText(text);
+      return sendResponse({ ok: true, data: out });
+    }
+  } catch (e: any) {
+    log("Error:", e?.message || e);
+
+    // Return both shapes so callers don't break
+    return sendResponse({
+      success: false,
+      ok: false,
+      error: "LOCAL_PROCESSING_ERROR"
+    });
   }
 });

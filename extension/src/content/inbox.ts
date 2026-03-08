@@ -1,225 +1,213 @@
-// Copyright (c) 2026 Bill Campbell. All rights reserved.
-// MailMood — https://github.com/campbellca2-a11y/MailMood
-// Licensed under the Business Source License 1.1. See LICENSE for details.
+"use strict";
 
-import { SELECTORS, TONE_META } from "../constants";
-import type { AnalyzeResponse, BackgroundAnalyzeMessage } from "../types";
+/**
+ * MailMood Inbox Pill Injector
+ * Local-First + Tooltip + Gmail DOM resilience
+ */
 
-const toneCache = new Map<string, AnalyzeResponse>();
-const MAX_CACHE_SIZE = 200;
+type AnalyzeResult = {
+  toneLabel: string;
+  confidence: number;
+  explanation?: string;
+};
 
-function setCached(key: string, value: AnalyzeResponse): void {
-  if (toneCache.size >= MAX_CACHE_SIZE) {
-    const firstKey = toneCache.keys().next().value;
-    if (firstKey !== undefined) toneCache.delete(firstKey);
+const PILL_CLASS = "mailmood-pill";
+const cache = new Map<string, AnalyzeResult>();
+
+function toneStyle(tone: string) {
+
+  const t = tone.toLowerCase();
+
+  if (t.includes("urgent") || t.includes("tense")) {
+    return { bg: "#fee2e2", fg: "#991b1b", border: "#fecaca", label: "URGENT" };
   }
-  toneCache.set(key, value);
+
+  if (t.includes("warm") || t.includes("positive")) {
+    return { bg: "#ffedd5", fg: "#9a3412", border: "#fed7aa", label: "WARM" };
+  }
+
+  if (t.includes("apologetic") || t.includes("anxious")) {
+    return { bg: "#f3e8ff", fg: "#6b21a8", border: "#e9d5ff", label: "ANXIOUS" };
+  }
+
+  if (t.includes("sad") || t.includes("concern")) {
+    return { bg: "#dbeafe", fg: "#1e40af", border: "#bfdbfe", label: "SAD" };
+  }
+
+  if (t.includes("calm") || t.includes("professional")) {
+    return { bg: "#dcfce7", fg: "#166534", border: "#bbf7d0", label: "CALM" };
+  }
+
+  return { bg: "#fef9c3", fg: "#854d0e", border: "#fef08a", label: "NEUTRAL" };
 }
 
-function digest(text: string): string {
-  let hash = 0;
-  for (let i = 0; i < text.length; i += 1) {
-    hash = (hash << 5) - hash + text.charCodeAt(i);
-    hash |= 0;
-  }
-  return `${hash}`;
+function createPill() {
+
+  const pill = document.createElement("span");
+
+  pill.className = PILL_CLASS;
+  pill.textContent = "...";
+
+  pill.style.cssText =
+    "display:inline-flex;" +
+    "align-items:center;" +
+    "border-radius:999px;" +
+    "padding:2px 10px;" +
+    "margin:0 8px;" +
+    "font-size:11px;" +
+    "font-weight:600;" +
+    "letter-spacing:0.02em;" +
+    "border:1px solid rgba(0,0,0,0.08);" +
+    "box-shadow:0 1px 2px rgba(0,0,0,0.08);" +
+    "line-height:16px;" +
+    "cursor:default;";
+
+  return pill;
 }
 
-function sendAnalyze(text: string): Promise<AnalyzeResponse> {
-  const message: BackgroundAnalyzeMessage = {
-    type: "MM_ANALYZE",
-    payload: { text, mode: "incoming" }
-  };
+function applyTone(pill: HTMLElement, tone: string) {
+
+  const style = toneStyle(tone);
+
+  pill.textContent = style.label;
+  pill.style.backgroundColor = style.bg;
+  pill.style.color = style.fg;
+  pill.style.borderColor = style.border;
+}
+
+function getRows(): HTMLElement[] {
+
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      'tr[data-legacy-last-message-id], tr.zA, div.zA'
+    )
+  );
+}
+
+function getSnippet(row: HTMLElement) {
+
+  const subject = row.querySelector(".bog")?.textContent?.trim() || "";
+  const snippet = row.querySelector(".y2")?.textContent?.trim() || "";
+
+  return (subject + " " + snippet).trim();
+}
+
+function getTargetCell(row: HTMLElement): HTMLElement | null {
+
+  return row.querySelector(".xW, .by1") as HTMLElement || row;
+}
+
+function getRowKey(row: HTMLElement) {
+
+  const id = row.getAttribute("data-legacy-last-message-id");
+  if (id) return id;
+
+  return getSnippet(row).slice(0, 200);
+}
+
+function analyze(text: string): Promise<AnalyzeResult> {
 
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-        return;
+
+    chrome.runtime.sendMessage(
+      { type: "MM_ANALYZE", text },
+      (response) => {
+
+        const err = chrome.runtime.lastError;
+        if (err) return reject(err);
+
+        if (!response?.ok && !response?.success)
+          return reject(response);
+
+        resolve(response.data);
       }
-      if (!response?.ok) {
-        reject(new Error(response?.error ?? "Unknown background error"));
-        return;
-      }
-      resolve(response.data as AnalyzeResponse);
-    });
-  });
-}
-
-function upsertMoodBadge(subjectEl: Element, analysis: AnalyzeResponse): void {
-  const meta = TONE_META[analysis.toneLabel];
-  const host = subjectEl.parentElement;
-  if (!host) {
-    return;
-  }
-
-  let badge = host.querySelector<HTMLSpanElement>(".mm-inbox-badge");
-  if (!badge) {
-    badge = document.createElement("span");
-    badge.className = "mm-inbox-badge";
-    badge.addEventListener("mousedown", (e) => { e.stopPropagation(); });
-    badge.addEventListener("click", (e) => { e.stopPropagation(); });
-    host.appendChild(badge);
-  }
-
-  badge.textContent = meta.label;
-  badge.style.backgroundColor = `${meta.color}1A`;
-  badge.style.color = meta.color;
-  badge.style.borderColor = `${meta.color}55`;
-  badge.title = `${meta.label} (${Math.round(analysis.confidence * 100)}%) - ${analysis.explanation}`;
-}
-
-// Track in-flight requests to avoid duplicates
-const pending = new Set<string>();
-
-// Rate limiting — cap concurrent analyses so large inboxes don't flood the
-// background worker with dozens of simultaneous messages on first load.
-const MAX_CONCURRENT = 5;
-let activeCount = 0;
-const analysisQueue: Array<() => void> = [];
-
-function drainQueue(): void {
-  while (activeCount < MAX_CONCURRENT && analysisQueue.length > 0) {
-    const next = analysisQueue.shift();
-    if (next) next();
-  }
-}
-
-function withConcurrencyLimit(fn: () => Promise<void>): void {
-  if (activeCount < MAX_CONCURRENT) {
-    activeCount++;
-    fn().finally(() => {
-      activeCount--;
-      drainQueue();
-    });
-  } else {
-    analysisQueue.push(() => {
-      activeCount++;
-      fn().finally(() => {
-        activeCount--;
-        drainQueue();
-      });
-    });
-  }
-}
-
-async function analyzeRow(row: Element): Promise<void> {
-  const subjectEl = row.querySelector(SELECTORS.subject);
-  const previewEl = row.querySelector(SELECTORS.preview);
-  if (!subjectEl) {
-    return;
-  }
-
-  const subject = subjectEl.textContent?.trim() ?? "";
-  const preview = previewEl?.textContent?.trim().replace(/^-\s*/, "") ?? "";
-  const text = `${subject}. ${preview}`.trim();
-
-  if (!text || text === ".") {
-    return;
-  }
-
-  const hash = digest(text);
-
-  // If badge already exists on this row, skip
-  if (subjectEl.parentElement?.querySelector(".mm-inbox-badge")) {
-    return;
-  }
-
-  // Use cache if available
-  const cached = toneCache.get(hash);
-  if (cached) {
-    upsertMoodBadge(subjectEl, cached);
-    return;
-  }
-
-  // Don't fire duplicate requests
-  if (pending.has(hash)) {
-    return;
-  }
-
-  pending.add(hash);
-  try {
-    const analysis = await sendAnalyze(text);
-    setCached(hash, analysis);
-    // Re-query the subject element in case Gmail re-rendered the row
-    const freshSubject = row.querySelector(SELECTORS.subject);
-    if (freshSubject) {
-      upsertMoodBadge(freshSubject, analysis);
-    }
-  } catch {
-    // Skip noisy errors in Gmail DOM churn.
-  } finally {
-    pending.delete(hash);
-  }
-}
-
-let observerPaused = false;
-
- showTutorialToast();
- 
-function scanInbox(): void {
-  // Pause observer while we modify DOM to avoid infinite loop
-  observerPaused = true;
-  const rows = document.querySelectorAll(SELECTORS.inboxRow);
-  rows.forEach((row) => {
-    withConcurrencyLimit(() => analyzeRow(row));
-  });
-  // Resume observer on next microtask (after our DOM writes settle)
-  queueMicrotask(() => { observerPaused = false; });
-}
-// Tutorial toast - shows once on first Gmail open after install
-function showTutorialToast(): void {
-  chrome.storage.local.get(["mm_show_tutorial"], (result) => {
-    if (result.mm_show_tutorial) {
-      const toast = document.createElement("div");
-      toast.id = "mailmood-tutorial-toast";
-      toast.style.cssText = `
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        background: #2563eb;
-        color: white;
-        padding: 16px 24px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        max-width: 300px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      `;
-      toast.textContent = "✨ MailMood is active! Look for mood badges next to emails";
-      document.body.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.remove();
-        chrome.storage.local.set({ mm_show_tutorial: false });
-      }, 6000);
-    }
-  });
-}
-export function initInboxWatcher(): void {
-  scanInbox();
-
-  let rafId = 0;
-  const observer = new MutationObserver((mutations) => {
-    if (observerPaused) return;
-
-    // Only rescan if mutations came from Gmail, not from our own badge inserts
-    const isOwnMutation = mutations.every((m) =>
-      Array.from(m.addedNodes).every((n) =>
-        n instanceof HTMLElement && n.classList.contains("mm-inbox-badge")
-      )
     );
-    if (isOwnMutation) return;
 
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-    }
-    rafId = requestAnimationFrame(() => {
-      scanInbox();
+  });
+}
+
+function setTooltip(pill: HTMLElement, r: AnalyzeResult) {
+
+  const tone = (r.toneLabel || "neutral").toUpperCase();
+  const conf = Math.round((r.confidence || 0.5) * 100);
+  const exp = r.explanation || "";
+
+  pill.title =
+    tone +
+    "\nConfidence: " + conf + "%" +
+    "\n" + exp;
+}
+
+function processRow(row: HTMLElement) {
+
+  if (row.querySelector("." + PILL_CLASS)) return;
+
+  const text = getSnippet(row);
+  if (!text) return;
+
+  const target = getTargetCell(row);
+  if (!target) return;
+
+  const pill = createPill();
+  target.prepend(pill);
+
+  const key = getRowKey(row);
+
+  const cached = cache.get(key);
+
+  if (cached) {
+    applyTone(pill, cached.toneLabel);
+    setTooltip(pill, cached);
+    return;
+  }
+
+  analyze(text)
+    .then((result) => {
+
+      cache.set(key, result);
+
+      applyTone(pill, result.toneLabel);
+      setTooltip(pill, result);
+
+    })
+    .catch(() => {
+
+      pill.textContent = "??";
+      pill.style.backgroundColor = "#f1f5f9";
+      pill.style.color = "#475569";
+
     });
+}
+
+export function injectPills() {
+
+  const rows = getRows();
+
+  rows.forEach((row) => processRow(row));
+
+}
+
+let observerStarted = false;
+
+function startObserver() {
+
+  if (observerStarted) return;
+  observerStarted = true;
+
+  const observer = new MutationObserver(() => {
+    injectPills();
   });
 
-  observer.observe(document.body, { subtree: true, childList: true });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+}
+
+export function initInboxWatcher() {
+
+  injectPills();
+  startObserver();
+
 }
