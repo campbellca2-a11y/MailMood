@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MailMood",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "description": "An AI-powered Gmail assistant that uses an MBA-level persona to optimize email tone.",
   "permissions": [
     "storage",
